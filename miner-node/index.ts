@@ -2,7 +2,7 @@ import express, { RequestHandler } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 
-import { Blockchain, Transaction } from "../shared/blockchain";
+import { Blockchain, Transaction, Block } from "../shared/blockchain";
 import {
   addTransaction,
   getPendingTransactions,
@@ -21,29 +21,26 @@ app.use(bodyParser.json());
 
 const blockchain = new Blockchain();
 
-// ws.on("open", () => console.log("Connected to central WebSocket server"));
-
-// ws.on("message", (msg) => {
-//   const { type, data } = JSON.parse(msg.toString());
-
-//   if (type === "NEW_BLOCK") {
-//     const newBlock = data;
-//     const latest = blockchain.getLatestBlock();
-
-//     if (newBlock.previousHash === latest.hash) {
-//       blockchain.addBlock(newBlock);
-//       console.log("New block added from network");
-//     } else {
-//       console.warn("Invalid block received");
-//     }
-//   }
-// });
+// Helper to convert plain object to Block instance
+function blockFromPlain(obj: any): Block {
+  return new Block(
+    obj.index,
+    obj.timestamp,
+    obj.transactions,
+    obj.previousHash,
+    obj.nonce,
+    obj.hash
+  );
+}
 
 connectToCentralServer("ws://localhost:4000", (incomingBlock) => {
   const latest = blockchain.getLatestBlock();
+  console.log("incomingBlock.previousHash", incomingBlock.previousHash);
+  console.log("latest.hash", latest.hash);
 
   if (incomingBlock.previousHash === latest.hash) {
-    blockchain.addBlock(incomingBlock);
+    const block = blockFromPlain(incomingBlock);
+    blockchain.addBlock(block);
     console.log("✅ New block added from other miner");
   } else {
     console.warn("❌ Invalid block received");
