@@ -85,10 +85,11 @@ class Blockchain {
     );
   }
 
-  isChainValid(): boolean {
-    for (let i = 1; i < this.chain.length; i++) {
-      const currentBlock = this.chain[i];
-      const previousBlock = this.chain[i - 1];
+  isChainValid(chain?: Block[]): boolean {
+    const chainToCheck = chain || this.chain;
+    for (let i = 1; i < chainToCheck.length; i++) {
+      const currentBlock = chainToCheck[i];
+      const previousBlock = chainToCheck[i - 1];
 
       if (currentBlock.hash !== currentBlock.calculateHash()) {
         return false;
@@ -107,6 +108,25 @@ class Blockchain {
 
   getDifficulty(): number {
     return this.difficulty;
+  }
+
+  replaceChain(newChain: Block[]): void {
+    if (newChain.length <= this.chain.length) {
+      console.log("Received chain is not longer than the current chain");
+      return;
+    }
+
+    if (!this.isChainValid(newChain)) {
+      console.log("❌ Received chain is invalid.");
+      return;
+    }
+
+    console.log("🔁 Replacing chain with new longer valid chain.");
+    this.chain = newChain;
+  }
+
+  getChain(): Block[] {
+    return this.chain;
   }
 }
 

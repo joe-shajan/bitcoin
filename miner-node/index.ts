@@ -10,10 +10,11 @@ import {
 } from "./transactionPool";
 import { verifyTransaction } from "./verify";
 
-// import WebSocket from "ws";
-import { broadcastBlock, connectToCentralServer } from "./wsClient";
-
-// const ws = new WebSocket("ws://localhost:3000");
+import {
+  broadcastBlock,
+  connectToCentralServer,
+  pushChainToPeers,
+} from "./wsClient";
 
 const app = express();
 app.use(cors());
@@ -33,19 +34,21 @@ function blockFromPlain(obj: any): Block {
   );
 }
 
-connectToCentralServer("ws://localhost:4000", (incomingBlock) => {
-  const latest = blockchain.getLatestBlock();
-  console.log("incomingBlock.previousHash", incomingBlock.previousHash);
-  console.log("latest.hash", latest.hash);
+connectToCentralServer(
+  "ws://localhost:4000",
+  (incomingBlock) => {
+    const latest = blockchain.getLatestBlock();
 
-  if (incomingBlock.previousHash === latest.hash) {
-    const block = blockFromPlain(incomingBlock);
-    blockchain.addBlock(block);
-    console.log("✅ New block added from other miner");
-  } else {
-    console.warn("❌ Invalid block received");
-  }
-});
+    if (incomingBlock.previousHash === latest.hash) {
+      const block = blockFromPlain(incomingBlock);
+      blockchain.addBlock(block);
+      console.log("✅ New block added from other miner");
+    } else {
+      console.warn("❌ Invalid block received");
+    }
+  },
+  blockchain
+);
 
 setInterval(() => {
   const transactions = getPendingTransactions();
@@ -58,7 +61,8 @@ setInterval(() => {
 
   broadcastBlock(newBlock);
   console.log("Mined and broadcasted new block");
-}, 15000); // every 15 seconds
+  pushChainToPeers(blockchain.getChain());
+}, 5000); // mine every 5 seconds
 
 const handleTransaction: RequestHandler = (req, res) => {
   const tx: Transaction = req.body;
@@ -79,6 +83,10 @@ const handleTransaction: RequestHandler = (req, res) => {
 };
 
 app.post("/transaction", handleTransaction);
+
+app.get("/chain", (req, res) => {
+  res.json(blockchain.getChain());
+});
 
 const PORT = 3001;
 

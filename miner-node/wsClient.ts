@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { Block } from "../shared/blockchain";
+import { Block, Blockchain } from "../shared/blockchain";
 
 let socket: WebSocket;
 
@@ -7,7 +7,11 @@ type Callback = (block: Block) => void;
 
 let onNewBlockCallback: Callback | null = null;
 
-export const connectToCentralServer = (url: string, onNewBlock: Callback) => {
+export const connectToCentralServer = (
+  url: string,
+  onNewBlock: Callback,
+  blockchain: Blockchain
+) => {
   socket = new WebSocket(url);
 
   onNewBlockCallback = onNewBlock;
@@ -23,6 +27,10 @@ export const connectToCentralServer = (url: string, onNewBlock: Callback) => {
       if (type === "NEW_BLOCK" && onNewBlockCallback) {
         onNewBlockCallback(payload);
       }
+
+      if (type === "CHAIN") {
+        blockchain.replaceChain(payload);
+      }
     } catch (error) {
       console.error("❌ Error parsing message:", error);
     }
@@ -36,5 +44,11 @@ export const connectToCentralServer = (url: string, onNewBlock: Callback) => {
 export const broadcastBlock = (block: Block) => {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "NEW_BLOCK", data: block }));
+  }
+};
+
+export const pushChainToPeers = (chain: Block[]) => {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "CHAIN", data: chain }));
   }
 };
