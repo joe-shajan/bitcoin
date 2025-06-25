@@ -2,11 +2,6 @@
 
 A minimal blockchain simulation with a central server, multiple miner nodes, and a React frontend for wallet and explorer functionality.
 
-## Prerequisites
-
-- Node.js (v18+ recommended)
-- npm
-
 ## Project Structure
 
 - `central-server/` — WebSocket server for miner communication
